@@ -76,6 +76,10 @@ IMG=lola-init:dev-amd64 PLATFORM=linux/amd64 tests/run-tests.sh
 # optional: V1_IMG=<image of an earlier version> adds the upgrade test (amd64 only)
 ```
 
+Pushes to `main` publish `quay.io/che-incubator/lola-init:latest` and `:sha-<commit>` for amd64 and arm64
+(the `QUAY_USERNAME` and `QUAY_PASSWORD` repository secrets hold the robot account). The index digest is in
+the workflow run summary.
+
 The tests need Docker and git. They build local fixture repos, run the image against them as uid 1000 and
 check the files in the home volume (install, restart, new commit, non-default ref, personal over default and
 back, unreachable repo, credentials in URLs, invalid MCP entries, items removed from the repo, opt-out,
