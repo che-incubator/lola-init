@@ -13,12 +13,12 @@ It clones a config repo in the
 | `LOLA_REPO_URL`, `LOLA_REPO_REF` | the user (Secret in their namespace) | personal config repo |
 | `LOLA_DEFAULT_REPO_URL`, `LOLA_DEFAULT_REPO_REF` | the admin (ConfigMap synced to every namespace) | recommended default |
 | `LOLA_DISABLED` | the user (same Secret) | `true` turns the init off |
-| `LOLA_AGENT` | the admin (ConfigMap) or the user (same Secret) | Lola targets: `claude-code` (default), a comma-separated subset such as `claude-code,opencode`, or `all` |
+| `LOLA_AGENTS` | the admin (ConfigMap) or the user (same Secret) | Lola targets: `claude-code` (default), a comma-separated subset such as `claude-code,opencode`, or `all` |
 
 The personal pair wins when set, otherwise the default pair is used. The ref always comes from the pair
 the URL came from. Nothing set: the init does nothing.
 
-The agent set is part of the source: changing `LOLA_AGENT` takes the switch path, which removes the config
+The agent set is part of the source: changing `LOLA_AGENTS` takes the switch path, which removes the config
 installed for the previous set and installs it for the new one. Order and duplicates do not matter
 (`opencode,claude-code` is the same set as `claude-code,opencode`). An unknown name is refused with a `failed`
 status. `all` means every target Lola supports, and the container passes it to Lola as "no `-a`" so a new Lola
@@ -53,7 +53,7 @@ OpenCode needs no adapter: Lola writes its MCP servers straight into `~/.config/
 `lola_warnings.py` reports entries Lola dropped (Lola itself prints these only during `mod add`).
 
 It never fails the workspace start because of a script failure: every failure path exits 0. The result is in
-`~/.lola/init-status` (`ok|failed <time> <module> origin=… mode=… warnings=… agent=… url=…`, or
+`~/.lola/init-status` (`ok|failed <time> <module> origin=… mode=… warnings=… agents=… url=…`, or
 `ok <time> disabled` when opted out). URLs are printed and stored without embedded credentials.
 
 ## Limits

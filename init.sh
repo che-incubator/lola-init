@@ -14,7 +14,7 @@
 # both pairs. Nothing is fetched or changed and config that is already installed stays in place; only the
 # status file is written. Unset the variable and the next start picks up from the recorded source.
 #
-# Agents: LOLA_AGENT picks the Lola targets. One name (claude-code, the default), a comma-separated
+# Agents: LOLA_AGENTS picks the Lola targets. One name (claude-code, the default), a comma-separated
 # subset (claude-code,opencode), or all (every target Lola supports).
 #
 # Start modes (decided from the source recorded after the last successful run):
@@ -85,12 +85,13 @@ else
   exit 0
 fi
 
-AGENTS=$(printf '%s' "${LOLA_AGENT:-claude-code}" | tr ',' ' ')
+AGENTS=$(printf '%s' "${LOLA_AGENTS:-claude-code}" | tr ',' ' ')
+[ -z "${LOLA_AGENT:-}" ] || say "LOLA_AGENT is ignored, the variable is now LOLA_AGENTS"
 for a in $AGENTS; do
   case "$a" in
     all) AGENTS=all; break ;;
     claude-code|copilot-cli|copilot-vscode|cursor|gemini-cli|openclaw|opencode) ;;
-    *) fail "unsupported LOLA_AGENT=$a (supported: claude-code, opencode, gemini-cli, cursor, copilot-vscode, copilot-cli, openclaw, all)" ;;
+    *) fail "unsupported LOLA_AGENTS=$a (supported: claude-code, opencode, gemini-cli, cursor, copilot-vscode, copilot-cli, openclaw, all)" ;;
   esac
 done
 # Canonical form: comma-separated, sorted, no duplicates. It is what the record compares on.
@@ -119,7 +120,7 @@ fi
 
 start_mode=$mode
 if [ "$mode" = switch ]; then
-  say "config source changed (now: $ORIGIN agent=$AGENTS); replacing the installed module"
+  say "config source changed (now: $ORIGIN agents=$AGENTS); replacing the installed module"
   # Check the new source first, so an unreachable one does not wipe a working install.
   timeout 30 git ls-remote "$URL" >> "$LOG" 2>&1 || fail "new config source is not reachable; kept the existing install"
   m=$(managed) || fail "cannot tell which module lola-init installed; nothing was removed"
@@ -179,5 +180,5 @@ case ",$AGENTS," in
 esac
 
 printf '%s %s %s\n' "$SRC_HASH" "$AGENTS" "$module" > "$RECORD"
-write_status "ok $(date -u +%FT%TZ) $module origin=$ORIGIN mode=$start_mode warnings=$warnings agent=$AGENTS url=$URL"
-say "ok module=$module origin=$ORIGIN mode=$start_mode warnings=$warnings agent=$AGENTS"
+write_status "ok $(date -u +%FT%TZ) $module origin=$ORIGIN mode=$start_mode warnings=$warnings agents=$AGENTS url=$URL"
+say "ok module=$module origin=$ORIGIN mode=$start_mode warnings=$warnings agents=$AGENTS"

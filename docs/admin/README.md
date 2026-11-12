@@ -55,8 +55,8 @@ oc get pod -l controller.devfile.io/devworkspace_name=<name> -o jsonpath='{.item
 oc logs -l controller.devfile.io/devworkspace_name=<name> -c lola-init
 ```
 
-Expected log lines: `[lola-init] ok module=<name> origin=default mode=install warnings=0 agent=<list>`. Inside
-the workspace, `~/.lola/init-status` holds `ok <time> <module> origin=… mode=… warnings=… agent=… url=…`, with
+Expected log lines: `[lola-init] ok module=<name> origin=default mode=install warnings=0 agents=<list>`. Inside
+the workspace, `~/.lola/init-status` holds `ok <time> <module> origin=… mode=… warnings=… agents=… url=…`, with
 the full URL and the same values. Skills are in `~/.claude/skills`, agents in `~/.claude/agents`, MCP servers
 in `~/.claude.json`.
 

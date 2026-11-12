@@ -81,7 +81,7 @@ stringData:
   LOLA_REPO_REF: main
   # Optional: the assistants to install for. One name (claude-code, the default), a comma-separated
   # subset (claude-code,opencode,gemini-cli), or all.
-  LOLA_AGENT: opencode
+  LOLA_AGENTS: opencode
 ```
 
 The Secret mounts into **every workspace in the namespace**. To limit it, add the annotation
@@ -93,7 +93,7 @@ A private repo works through the git credentials your workspace already has; a p
 ## 3. Check it worked
 
 - `cat ~/.lola/init-status` should read
-  `ok <time> <module> origin=personal mode=install warnings=0 agent=<list> url=<url>`. `mode` is `install` on a
+  `ok <time> <module> origin=personal mode=install warnings=0 agents=<list> url=<url>`. `mode` is `install` on a
   fresh home, `update` when the repository and the assistant set did not change, and `switch` after a change of
   either.
 - Claude Code: `ls ~/.claude/skills ~/.claude/agents` lists your items, and `claude mcp list` lists your
@@ -109,7 +109,7 @@ A private repo works through the git credentials your workspace already has; a p
   are removed.
 - **Another branch or tag:** change `LOLA_REPO_REF`.
 - **Another repo:** change `LOLA_REPO_URL`. The init removes the old config completely, then installs the new one.
-- **Another or more assistants:** change `LOLA_AGENT` (`claude-code`, `opencode`, a comma-separated list,
+- **Another or more assistants:** change `LOLA_AGENTS` (`claude-code`, `opencode`, a comma-separated list,
   or `all`). Same switch path: the config is removed from every assistant of the old set, then installed for the
   new set. An old assistant's instructions file can stay behind, empty.
 - **Back to the recommended repo:** delete the Secret and restart the workspace.

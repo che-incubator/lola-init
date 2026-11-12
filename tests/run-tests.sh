@@ -243,46 +243,46 @@ echo "T13 OpenCode target"
 newhome t13; seed_user t13
 runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T13a; t_in t13 "T13 Claude installed first" 'test -f ~/.claude/skills/d-skill/SKILL.md'
-runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=opencode
 t_rc0 T13b; t_out "T13 agent change takes the switch path" "origin=default mode=switch"
 t_in t13 "T13 opencode skill installed" 'grep -q "Marker: D3" ~/.config/opencode/skills/d-skill/SKILL.md'
 t_in t13 "T13 opencode agent installed" 'test -f ~/.config/opencode/agents/d-agent.md'
 t_in t13 "T13 opencode instructions installed" 'grep -q "Instructions marker: D3" ~/.config/opencode/AGENTS.md'
 t_in t13 "T13 opencode MCP written by Lola" "python3 -I -c \"import json,sys;d=json.load(open('/home/user/.config/opencode/opencode.json'))['mcp'];sys.exit(0 if 'd-srv' in d else 1)\""
 t_in t13 "T13 old claude skill removed" 'test ! -e ~/.claude/skills/d-skill'
-t_in t13 "T13 status records the agent" 'grep -q "agent=opencode" ~/.lola/init-status'
-runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+t_in t13 "T13 status records the agents" 'grep -q "agents=opencode" ~/.lola/init-status'
+runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=opencode
 t_rc0 T13c; t_out "T13 opencode restart uses the update path" "origin=default mode=update"
 runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T13d; t_in t13 "T13 back to claude: opencode skill removed" 'test ! -e ~/.config/opencode/skills/d-skill'
 t_in t13 "T13 back to claude: claude skill installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
-newhome t13e; runinit t13e LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=bogus
-t_rc0 T13e; t_out "T13 unknown agent is refused" "unsupported LOLA_AGENT=bogus"
+newhome t13e; runinit t13e LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=bogus
+t_rc0 T13e; t_out "T13 unknown agent is refused" "unsupported LOLA_AGENTS=bogus"
 t_in t13e "T13 unknown agent installs nothing" 'test ! -e ~/.lola/init-source'
 
 echo "T14 several agents"
 newhome t14
-runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode,claude-code
-t_rc0 T14a; t_out "T14 list installs" "agent=claude-code,opencode"
+runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=opencode,claude-code
+t_rc0 T14a; t_out "T14 list installs" "agents=claude-code,opencode"
 t_in t14 "T14 claude content installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
 t_in t14 "T14 opencode content installed" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
 t_in t14 "T14 opencode MCP written by Lola" "python3 -I -c \"import json,sys;d=json.load(open('/home/user/.config/opencode/opencode.json'))['mcp'];sys.exit(0 if 'd-srv' in d else 1)\""
 t_in t14 "T14 claude MCP adapted" "python3 -I -c \"import json,sys;d=json.load(open('/home/user/.claude.json'))['mcpServers'];sys.exit(0 if 'd-srv' in d else 1)\""
-runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=claude-code,opencode
+runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=claude-code,opencode
 t_rc0 T14b; t_out "T14 same set in another order uses the update path" "mode=update"
-runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=opencode
 t_rc0 T14c; t_out "T14 narrowing the set takes the switch path" "mode=switch"
 t_in t14 "T14 dropped agent content removed" 'test ! -e ~/.claude/skills/d-skill'
 t_in t14 "T14 kept agent content stays" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
 
 echo "T15 all agents"
 newhome t15
-runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=all
-t_rc0 T15a; t_out "T15 all is recorded as one value" "agent=all"
+runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=all
+t_rc0 T15a; t_out "T15 all is recorded as one value" "agents=all"
 t_in t15 "T15 claude content installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
 t_in t15 "T15 opencode content installed" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
 t_in t15 "T15 cursor content installed" 'test -f ~/.cursor/skills/d-skill/SKILL.md'
-runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=all
+runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=all
 t_rc0 T15b; t_out "T15 restart uses the update path" "mode=update"
 runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T15c; t_out "T15 all to one takes the switch path" "mode=switch"
@@ -298,7 +298,7 @@ runinit t16 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T16a; t_out "T16 a home with only a foreign module uses the install path" "mode=install"
 t_in t16 "T16 the user module is untouched by the install" 'test -d ~/.lola/modules/u'
 t_in t16 "T16 the init installed its own module, not the user's" 'grep -q "Marker: D3" ~/.claude/skills/d-skill/SKILL.md'
-runinit t16 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+runinit t16 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=opencode
 t_rc0 T16b; t_out "T16 agent change takes the switch path" "mode=switch"
 t_in t16 "T16 the user module survives the switch" 'test -d ~/.lola/modules/u'
 t_in t16 "T16 the init module was replaced" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md && test ! -e ~/.claude/skills/d-skill'
@@ -312,10 +312,15 @@ inh t17 'cut -d" " -f1,2 ~/.lola/init-source > ~/.lola/init-source.new && mv ~/.
 runinit t17 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T17b; t_out "T17 a two-field record still takes the update path" "mode=update"
 t_in t17 "T17 the record gains the module name" 'test "$(wc -w < ~/.lola/init-source)" = 3'
-runinit t17 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+runinit t17 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=opencode
 t_rc0 T17c; t_out "T17 switch after a two-field record" "mode=switch"
 t_in t17 "T17 the user module survives both paths" 'test -d ~/.lola/modules/u'
 t_in t17 "T17 the init module was replaced" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
+
+echo "T18 the variable name from before the rename"
+newhome t18; runinit t18 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=all
+t_rc0 T18; t_out "T18 the old name is reported as ignored" "now LOLA_AGENTS"
+t_in t18 "T18 the default assistant is used" 'grep -q "agents=claude-code" ~/.lola/init-status'
 
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" = 0 ]
