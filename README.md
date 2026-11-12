@@ -21,8 +21,9 @@ the URL came from. Nothing set: the init does nothing.
 The agent set is part of the source: changing `LOLA_AGENTS` takes the switch path, which removes the config
 installed for the previous set and installs it for the new one. Order and duplicates do not matter
 (`opencode,claude-code` is the same set as `claude-code,opencode`). An unknown name is refused with a `failed`
-status. `all` means every target Lola supports, and the container passes it to Lola as "no `-a`" so a new Lola
-target needs no change here.
+status. `all` means every target Lola installs by default, and the container passes it to Lola as "no `-a`" so a
+new Lola target needs no change here. Lola excludes `copilot-cli` from that default set, because it writes the
+same `~/.copilot` location as `copilot-vscode`: name `copilot-cli` explicitly to install for it.
 
 `LOLA_DISABLED=true` is the opt-out. It is checked first, so it wins over both pairs: the init fetches
 nothing, changes nothing and writes only the status file (`ok <time> disabled`). Config that is already
@@ -41,7 +42,7 @@ Each pair is a repo and a ref:
 ## What it does on each start
 
 - **install**: nothing installed yet. `lola mod add`, then `lola install -a <agent> -s user` once per agent
-  (`all`: `lola install -s user`, which covers every target).
+  (`all`: `lola install -s user`, which covers every target except `copilot-cli`).
 - **update**: same source and agent set as last time. `lola mod update`, `lola update` (new commits arrive,
   removed skills go; Lola regenerates the files of every assistant the module is installed for).
 - **switch**: different source or agent set. Checks the new source is reachable, then `lola uninstall` without
@@ -65,6 +66,8 @@ It never fails the workspace start because of a script failure: every failure pa
   can stay behind empty (`~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`), plus any MCP entries the Claude
   adapter added to `~/.claude.json` (that adapter runs only when `claude-code` or `all` is selected).
 - Reusing the name of a managed MCP server for one you added by hand lets the adapter overwrite and later remove it.
+- `all` covers Lola's default target set, which leaves out `copilot-cli` (it writes the same location as
+  `copilot-vscode`). Name `copilot-cli` in `LOLA_AGENTS` to cover it.
 - Removing or replacing the installed module touches only the module lola-init installed. Modules you add to
   `~/.lola/modules` yourself stay, and the init refuses to switch rather than guess when it cannot tell them apart.
 - A container that cannot start at all (image not pullable, wrong architecture) does block the workspace pod.

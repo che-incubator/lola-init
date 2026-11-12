@@ -15,7 +15,7 @@
 # status file is written. Unset the variable and the next start picks up from the recorded source.
 #
 # Agents: LOLA_AGENTS picks the Lola targets. One name (claude-code, the default), a comma-separated
-# subset (claude-code,opencode), or all (every target Lola supports).
+# subset (claude-code,opencode), or all (every target Lola installs by default, which leaves out copilot-cli).
 #
 # Start modes (decided from the source recorded after the last successful run):
 #   install  nothing installed yet
@@ -147,7 +147,7 @@ else
   [ -n "$module" ] || fail "no module registered after lola mod add"
   rc=0
   if [ "$AGENTS" = all ]; then
-    # No "-a": Lola installs for every target it supports.
+    # No "-a": Lola installs for every target of its default set, which leaves out copilot-cli.
     lcmd lola install "$module" -s user -f || rc=1
   else
     for a in $(printf '%s' "$AGENTS" | tr ',' ' '); do
