@@ -4,13 +4,13 @@
 #
 # che-operator copies objects that carry BOTH labels below from the Che namespace into every user namespace
 # (it also adds the DevWorkspace automount labels to the copy). mount-as: env hands the two values to the
-# workspace containers as environment variables, where ai-agent-init reads them.
+# workspace containers as environment variables, where lola-init reads them.
 #
-# Edit the URL and ref. A developer's own repo (AI_CONFIG_REPO_URL in their Secret) replaces this default.
+# Edit the URL and ref. A developer's own repo (LOLA_REPO_URL in their Secret) replaces this default.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ai-agent-config-default
+  name: lola-config-default
   namespace: <che-namespace>
   labels:
     app.kubernetes.io/part-of: che.eclipse.org
@@ -19,7 +19,7 @@ metadata:
     controller.devfile.io/mount-as: env
 data:
   # The repo to install: a git URL.
-  AI_CONFIG_DEFAULT_REPO_URL: https://github.com/<org>/<repo>.git
+  LOLA_DEFAULT_REPO_URL: https://github.com/<org>/<repo>.git
   # The git ref to check out: a branch name, a tag or a commit SHA (for example main or v1.2.0).
   # Optional: remove the line to use the repo's default branch.
-  AI_CONFIG_DEFAULT_REPO_REF: main
+  LOLA_DEFAULT_REPO_REF: main

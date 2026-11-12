@@ -2,7 +2,7 @@
 """Sync MCP servers from ~/.mcp.json (written by Lola) into ~/.claude.json (read by Claude Code).
 
 Lola writes user-scope MCP servers to ~/.mcp.json; Claude Code reads them from ~/.claude.json.
-The adapter keeps a list of the server names it manages (~/.lola/.ai-agent-init-managed-mcp.json),
+The adapter keeps a list of the server names it manages (~/.lola/init-managed-mcp.json),
 so a server removed from the config repo, or dropped by a source switch, is removed again.
 Servers the user added by hand are never touched, unless they reuse a managed name.
 
@@ -13,7 +13,7 @@ import os
 import sys
 import tempfile
 
-MARK = "[ai-agent-init]"
+MARK = "[lola-init]"
 KEEP = ("type", "command", "args", "env", "url", "headers")
 
 
@@ -51,7 +51,7 @@ def write_atomic(path, data, mode):
 def main(home):
     src = os.path.join(home, ".mcp.json")
     dst = os.path.join(home, ".claude.json")
-    managed_path = os.path.join(home, ".lola", ".ai-agent-init-managed-mcp.json")
+    managed_path = os.path.join(home, ".lola", "init-managed-mcp.json")
     try:
         servers = (load(src, {}) or {}).get("mcpServers", {}) or {}
         prev = (load(managed_path, {}) or {}).get("names", []) or []

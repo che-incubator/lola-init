@@ -1,6 +1,6 @@
-# Admin guide: enable ai-agent-init for all workspaces
+# Admin guide: enable lola-init for all workspaces
 
-`ai-agent-init` installs an AI agent configuration repo (Claude Code skills, agents, instructions, MCP
+`lola-init` installs an AI agent configuration repo (Claude Code skills, agents, instructions, MCP
 servers) into every workspace home at start. The admin sets a recommended repo; a developer can replace it
 with their own. See the [repo README](../../README.md) for how the init behaves.
 
@@ -13,11 +13,11 @@ Two objects enable it for a whole cluster, with no che-operator or DWO code chan
 
 ## Prerequisites
 
-- **`persistUserHome` must be enabled** (the Che default). The `ai-agent-init` entry mounts `persistent-home`, a
+- **`persistUserHome` must be enabled** (the Che default). The `lola-init` entry mounts `persistent-home`, a
   volume DWO defines only when `persistUserHome` is enabled. With it off, every workspace start fails at once with
-  `container 'ai-agent-init' references undefined volume 'persistent-home'` (tested). Do not add the entry on a
+  `container `lola-init` references undefined volume 'persistent-home'` (tested). Do not add the entry on a
   cluster that turns `persistUserHome` off.
-- The image is pullable from every user namespace. `quay.io/okurinny/ai-agent-init` is public (anonymous pull
+- The image is pullable from every user namespace. `quay.io/che-incubator/lola-init` is public (anonymous pull
   checked on 2026-11-03 for amd64 and arm64, by tag and by digest). Pin by digest.
 - The image is multi-arch (amd64 and arm64). Use the same index digest in the CheCluster entry.
 - The recommended repo is readable by the init: public, or the workspaces have git credentials (the init uses the
@@ -52,11 +52,11 @@ For a new workspace `<name>` in a user namespace:
 
 ```
 oc get pod -l controller.devfile.io/devworkspace_name=<name> -o jsonpath='{.items[0].spec.initContainers[*].name}'
-oc logs -l controller.devfile.io/devworkspace_name=<name> -c ai-agent-init
+oc logs -l controller.devfile.io/devworkspace_name=<name> -c lola-init
 ```
 
-Expected log lines: `[ai-agent-init] ok module=<name> origin=default mode=install warnings=0`. Inside the
-workspace, `~/.lola/.ai-agent-init-status` holds the same result. Skills are in `~/.claude/skills`, agents in
+Expected log lines: `[lola-init] ok module=<name> origin=default mode=install warnings=0`. Inside the
+workspace, `~/.lola/init-status` holds the same result. Skills are in `~/.claude/skills`, agents in
 `~/.claude/agents`, MCP servers in `~/.claude.json`.
 
 ## Operate
@@ -80,7 +80,7 @@ the default pair; the ref comes from the pair the URL came from):
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ai-agent-config-repo
+  name: lola-config
   labels:
     controller.devfile.io/mount-to-devworkspace: "true"
     controller.devfile.io/watch-secret: "true"
@@ -88,10 +88,10 @@ metadata:
     controller.devfile.io/mount-as: env
 stringData:
   # The developer's config repo: a git URL.
-  AI_CONFIG_REPO_URL: https://github.com/<user>/<config-repo>.git
+  LOLA_REPO_URL: https://github.com/<user>/<config-repo>.git
   # The git ref to check out: a branch name, a tag or a commit SHA (for example main or v1.2.0).
   # Optional: leave it out to use the repo's default branch.
-  AI_CONFIG_REPO_REF: main
+  LOLA_REPO_REF: main
 ```
 
 Deleting the Secret and restarting the workspace switches back to the recommended repo. Private repos work
@@ -102,9 +102,9 @@ through the git credentials the workspace already has.
 - A script failure never blocks the workspace start. It is logged and written to the status file
   (`failed <time> origin=… reason=…`). Example, tested: a default repo that cannot be cloned.
 - A container that cannot start at all fails the workspace start quickly and with a clear message. An init image
-  that cannot be pulled ended in `Failed` after about 54 s with `Init Container ai-agent-init has state
+  that cannot be pulled ended in `Failed` after about 54 s with `Init Container lola-init has state
   ImagePullBackOff` (tested); no pod was left behind.
-- `persistUserHome` off fails every start at once: `ai-agent-init` mounts `persistent-home`, which then does not
+- `persistUserHome` off fails every start at once: `lola-init` mounts `persistent-home`, which then does not
   exist (see Prerequisites).
 - An unreachable new repo during a switch leaves the existing install in place.
 - Credentials embedded in a URL are not printed or stored.
@@ -149,7 +149,7 @@ Docker), an image of the wrong architecture blocking a pod, and the restart stor
 
 ## Known gaps
 
-- A developer can opt out with `AI_CONFIG_DISABLED=true` in their Secret (see the developer guide, section 4). It
+- A developer can opt out with `LOLA_DISABLED=true` in their Secret (see the developer guide, section 4). It
   stops the init from fetching or changing anything, but does not uninstall config that is already in the workspace
   home; a new workspace gets none. An admin cannot force the init on for a developer who sets it.
 - Claude Code only. `settings.json` (hooks, permissions, env) is not carried.

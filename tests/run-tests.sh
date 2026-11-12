@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Docker tests for init.sh. Needs docker and git; fixtures are local bare repos copied into a volume.
-#   IMG=ai-agent-init:dev-amd64 PLATFORM=linux/amd64 [V1_IMG=<image of an earlier version>] tests/run-tests.sh
-IMG=${IMG:-ai-agent-init:dev-amd64}
+#   IMG=lola-init:dev-amd64 PLATFORM=linux/amd64 [V1_IMG=<image of an earlier version>] tests/run-tests.sh
+IMG=${IMG:-lola-init:dev-amd64}
 PLATFORM=${PLATFORM:-linux/amd64}
 V1_IMG=${V1_IMG:-}
 W=$(mktemp -d "${TMPDIR:-/tmp}/ai-init-tests.XXXXXX")
@@ -98,20 +98,20 @@ t_rc0 T1; t_out "T1 says nothing to do" "nothing to do"; t_in t1 "T1 nothing ins
 echo "T2 default repo: first install"
 mkrepo D d D1
 newhome t2; seed_user t2
-runinit t2 AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t2 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T2; t_out "T2 mode=install origin=default" "origin=default mode=install"
 t_in t2 "T2 skill installed" 'grep -q "Marker: D1" ~/.claude/skills/d-skill/SKILL.md'
 t_in t2 "T2 agent installed" 'test -f ~/.claude/agents/d-agent.md'
 t_in t2 "T2 instructions block installed" 'grep -q "Instructions marker: D1" ~/.claude/CLAUDE.md'
 t_srv t2 d-srv; t_user_kept t2
-t_in t2 "T2 status file says ok" 'grep -q "^ok " ~/.lola/.ai-agent-init-status'
+t_in t2 "T2 status file says ok" 'grep -q "^ok " ~/.lola/init-status'
 t_in t2 "T2 .claude.json mode 600" 'test "$(stat -c %a ~/.claude.json)" = 600'
 
 echo "T3 restart, then a new commit"
-runinit t2 AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t2 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T3; t_out "T3 restart uses the update path" "mode=update"
 bump D d D2
-runinit t2 AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t2 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T3b; t_in t2 "T3 new commit picked up (skill)" 'grep -q "Marker: D2" ~/.claude/skills/d-skill/SKILL.md'
 t_in t2 "T3 new commit picked up (instructions)" 'grep -q "Instructions marker: D2" ~/.claude/CLAUDE.md'
 t_user_kept t2
@@ -121,15 +121,15 @@ mkrepo R r M1
 ( cd "$W/work/R" && git checkout -q -b feat )
 bump R r F1 feat
 newhome t4
-runinit t4 AI_CONFIG_DEFAULT_REPO_URL=/src/R.git AI_CONFIG_DEFAULT_REPO_REF=feat
+runinit t4 LOLA_DEFAULT_REPO_URL=/src/R.git LOLA_DEFAULT_REPO_REF=feat
 t_rc0 T4; t_in t4 "T4 ref honoured on install" 'grep -q "Marker: F1" ~/.claude/skills/r-skill/SKILL.md'
 bump R r F2 feat
-runinit t4 AI_CONFIG_DEFAULT_REPO_URL=/src/R.git AI_CONFIG_DEFAULT_REPO_REF=feat
+runinit t4 LOLA_DEFAULT_REPO_URL=/src/R.git LOLA_DEFAULT_REPO_REF=feat
 t_rc0 T4b; t_in t4 "T4 ref honoured on update" 'grep -q "Marker: F2" ~/.claude/skills/r-skill/SKILL.md'
 
 echo "T5 personal repo replaces the default"
 mkrepo P p P1
-runinit t2 AI_CONFIG_REPO_URL=/src/P.git AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t2 LOLA_REPO_URL=/src/P.git LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T5; t_out "T5 reports the switch" "config source changed"; t_out "T5 origin=personal mode=switch" "origin=personal mode=switch"
 t_in t2 "T5 default skill removed" 'test ! -e ~/.claude/skills/d-skill'
 t_in t2 "T5 default agent removed" 'test ! -e ~/.claude/agents/d-agent.md'
@@ -137,11 +137,11 @@ t_in t2 "T5 default instructions removed" '! grep -q "d instructions" ~/.claude/
 t_in t2 "T5 personal skill installed" 'grep -q "Marker: P1" ~/.claude/skills/p-skill/SKILL.md'
 t_in t2 "T5 personal instructions installed" 'grep -q "Instructions marker: P1" ~/.claude/CLAUDE.md'
 t_srv t2 p-srv; t_no_srv t2 d-srv; t_user_kept t2
-runinit t2 AI_CONFIG_REPO_URL=/src/P.git AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t2 LOLA_REPO_URL=/src/P.git LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T5b; t_out "T5 same personal source: update path" "origin=personal mode=update"
 
 echo "T6 personal removed: back to the default"
-runinit t2 AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t2 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T6; t_out "T6 origin=default mode=switch" "origin=default mode=switch"
 t_in t2 "T6 personal skill removed" 'test ! -e ~/.claude/skills/p-skill'
 t_in t2 "T6 default skill back" 'grep -q "Marker: D2" ~/.claude/skills/d-skill/SKILL.md'
@@ -149,12 +149,12 @@ t_srv t2 d-srv; t_no_srv t2 p-srv; t_user_kept t2
 
 echo "T7 home written by an earlier version (no source record)"
 if [ -n "$V1_IMG" ] && [ "$PLATFORM" = linux/amd64 ]; then
-  newhome t7a; runinit_v1 t7a AI_CONFIG_REPO_URL=/src/D.git
+  newhome t7a; runinit_v1 t7a LOLA_REPO_URL=/src/D.git
   t_rc0 "T7 earlier-version run"; t_in t7a "T7 earlier version installed the skill" 'test -f ~/.claude/skills/d-skill/SKILL.md'
-  runinit t7a AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
-  t_rc0 T7a; t_out "T7 same source: update path" "mode=update"; t_in t7a "T7 record written" 'test -f ~/.lola/.ai-agent-init-source'
-  newhome t7b; runinit_v1 t7b AI_CONFIG_REPO_URL=/src/D.git
-  runinit t7b AI_CONFIG_DEFAULT_REPO_URL=/src/P.git
+  runinit t7a LOLA_DEFAULT_REPO_URL=/src/D.git
+  t_rc0 T7a; t_out "T7 same source: update path" "mode=update"; t_in t7a "T7 record written" 'test -f ~/.lola/init-source'
+  newhome t7b; runinit_v1 t7b LOLA_REPO_URL=/src/D.git
+  runinit t7b LOLA_DEFAULT_REPO_URL=/src/P.git
   t_rc0 T7b; t_out "T7 different source: switch" "mode=switch"; t_in t7b "T7 old skill gone, new present" 'test ! -e ~/.claude/skills/d-skill && test -f ~/.claude/skills/p-skill/SKILL.md'
 else info "skipped (set V1_IMG, amd64 only)"; fi
 
@@ -168,26 +168,26 @@ json.dump(d, open("mcp.json", "w"))
 PYEOF
   git add -A; GIT commit -q -m "bad mcp entry" )
 publish W
-newhome t8; runinit t8 AI_CONFIG_DEFAULT_REPO_URL=/src/W.git
+newhome t8; runinit t8 LOLA_DEFAULT_REPO_URL=/src/W.git
 t_rc0 T8; t_out "T8 Lola warning is shown in the init log" "lola:"
-t_in t8 "T8 status records the warning" 'grep -Eq "warnings=[1-9]" ~/.lola/.ai-agent-init-status'
+t_in t8 "T8 status records the warning" 'grep -Eq "warnings=[1-9]" ~/.lola/init-status'
 t_srv t8 w-srv; t_no_srv t8 bad-srv
-runinit t8 AI_CONFIG_DEFAULT_REPO_URL=/src/W.git
+runinit t8 LOLA_DEFAULT_REPO_URL=/src/W.git
 t_rc0 T8b; t_out "T8 restart (update path) still reports the warning" "lola:"
 
 echo "T9 unreachable repo"
-newhome t9a; runinit t9a AI_CONFIG_REPO_URL=/src/nope.git
-t_rc0 T9a; t_out "T9 failure is reported" "FAILED"; t_in t9a "T9 status says failed" 'grep -q "^failed " ~/.lola/.ai-agent-init-status'
+newhome t9a; runinit t9a LOLA_REPO_URL=/src/nope.git
+t_rc0 T9a; t_out "T9 failure is reported" "FAILED"; t_in t9a "T9 status says failed" 'grep -q "^failed " ~/.lola/init-status'
 t_in t9a "T9 nothing left registered" 'test -z "$(ls ~/.lola/modules 2>/dev/null)"'
-newhome t9b; runinit t9b AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
-runinit t9b AI_CONFIG_REPO_URL=/src/nope.git AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+newhome t9b; runinit t9b LOLA_DEFAULT_REPO_URL=/src/D.git
+runinit t9b LOLA_REPO_URL=/src/nope.git LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T9b; t_out "T9 switch to an unreachable source is refused" "not reachable"
 t_in t9b "T9 the working install is kept" 'test -f ~/.claude/skills/d-skill/SKILL.md'
 
 echo "T10 credentials in the URL are never printed or stored"
-newhome t10; runinit t10 AI_CONFIG_REPO_URL=https://user:SECRETTOKEN123@127.0.0.1:1/x.git
+newhome t10; runinit t10 LOLA_REPO_URL=https://user:SECRETTOKEN123@127.0.0.1:1/x.git
 t_rc0 T10; t_no_out "T10 token not in the init log" "SECRETTOKEN123"
-t_in t10 "T10 token not in the status file" '! grep -q SECRETTOKEN123 ~/.lola/.ai-agent-init-status'
+t_in t10 "T10 token not in the status file" '! grep -q SECRETTOKEN123 ~/.lola/init-status'
 t_in t10 "T10 token not anywhere in the home volume" '! grep -rq SECRETTOKEN123 /home/user'
 
 echo "T11 things removed from the config repo"
@@ -201,7 +201,7 @@ json.dump(d, open("mcp.json", "w"))
 PYEOF
   git add -A; GIT commit -q -m "extras" )
 publish E
-newhome t11; runinit t11 AI_CONFIG_DEFAULT_REPO_URL=/src/E.git
+newhome t11; runinit t11 LOLA_DEFAULT_REPO_URL=/src/E.git
 t_rc0 T11; t_srv t11 e-srv2; t_in t11 "T11 extra skill installed" 'test -f ~/.claude/skills/e-extra/SKILL.md'
 ( cd "$W/work/E" && git rm -q -r skills/e-extra && python3 -I - <<'PYEOF'
 import json
@@ -209,35 +209,85 @@ d = json.load(open("mcp.json")); del d["mcpServers"]["e-srv2"]; json.dump(d, ope
 PYEOF
   git add -A; GIT commit -q -m "drop extras" )
 publish E
-runinit t11 AI_CONFIG_DEFAULT_REPO_URL=/src/E.git
+runinit t11 LOLA_DEFAULT_REPO_URL=/src/E.git
 t_rc0 T11b; t_no_srv t11 e-srv2; t_srv t11 e-srv
 if inh t11 'test -e ~/.claude/skills/e-extra' >/dev/null 2>&1; then info "T11 a skill removed from the repo STAYS in ~/.claude/skills after update (Lola does not prune)"; else info "T11 a skill removed from the repo is removed by update"; fi
 
-echo "T12 opt-out with AI_CONFIG_DISABLED=true"
-newhome t12a; runinit t12a AI_CONFIG_DISABLED=true AI_CONFIG_REPO_URL=/src/nope.git
-t_rc0 T12a; t_out "T12 says it is disabled" "disabled by AI_CONFIG_DISABLED=true"
+echo "T12 opt-out with LOLA_DISABLED=true"
+newhome t12a; runinit t12a LOLA_DISABLED=true LOLA_REPO_URL=/src/nope.git
+t_rc0 T12a; t_out "T12 says it is disabled" "disabled by LOLA_DISABLED=true"
 t_no_out "T12 never tried the (unreachable) repo" "FAILED"
-t_in t12a "T12 status says ok disabled" 'grep -Eq "^ok [^ ]+ disabled$" ~/.lola/.ai-agent-init-status'
+t_in t12a "T12 status says ok disabled" 'grep -Eq "^ok [^ ]+ disabled$" ~/.lola/init-status'
 t_in t12a "T12 nothing registered" 'test -z "$(ls ~/.lola/modules 2>/dev/null)"'
 newhome t12b; seed_user t12b
-runinit t12b AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t12b LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T12b-install; t_in t12b "T12 default installed first" 'grep -q "Marker: D2" ~/.claude/skills/d-skill/SKILL.md'
 bump D d D3
-runinit t12b AI_CONFIG_DISABLED=true AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t12b LOLA_DISABLED=true LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T12b-disabled; t_out "T12 disabled after an install" "left untouched"
 t_in t12b "T12 installed config left in place" 'grep -q "Marker: D2" ~/.claude/skills/d-skill/SKILL.md && test -f ~/.claude/agents/d-agent.md'
 t_srv t12b d-srv; t_user_kept t12b
 t_in t12b "T12 no update happened (new commit not picked up)" '! grep -q "Marker: D3" ~/.claude/skills/d-skill/SKILL.md'
-runinit t12b AI_CONFIG_DISABLED=true AI_CONFIG_REPO_URL=/src/P.git AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t12b LOLA_DISABLED=true LOLA_REPO_URL=/src/P.git LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T12b-beats-personal; t_in t12b "T12 the flag beats a personal repo (no switch)" 'test ! -e ~/.claude/skills/p-skill && test -f ~/.claude/skills/d-skill/SKILL.md'
-runinit t12b AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+runinit t12b LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T12b-reenable; t_out "T12 re-enable resumes on the update path" "origin=default mode=update"
 t_in t12b "T12 re-enable picked up the new commit" 'grep -q "Marker: D3" ~/.claude/skills/d-skill/SKILL.md'
-newhome t12c; runinit t12c AI_CONFIG_DISABLED=false AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+newhome t12c; runinit t12c LOLA_DISABLED=false LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T12c; t_out "T12 value false does not disable" "origin=default mode=install"; t_out "T12 value false is reported as ignored" "ignored"
 t_in t12c "T12 value false: config installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
-newhome t12d; runinit t12d AI_CONFIG_DISABLED= AI_CONFIG_DEFAULT_REPO_URL=/src/D.git
+newhome t12d; runinit t12d LOLA_DISABLED= LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T12d; t_out "T12 empty value does not disable" "origin=default mode=install"; t_no_out "T12 empty value is not reported" "ignored"
+
+echo "T13 OpenCode target"
+newhome t13; seed_user t13
+runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T13a; t_in t13 "T13 Claude installed first" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+t_rc0 T13b; t_out "T13 agent change takes the switch path" "origin=default mode=switch"
+t_in t13 "T13 opencode skill installed" 'grep -q "Marker: D3" ~/.config/opencode/skills/d-skill/SKILL.md'
+t_in t13 "T13 opencode agent installed" 'test -f ~/.config/opencode/agents/d-agent.md'
+t_in t13 "T13 opencode instructions installed" 'grep -q "Instructions marker: D3" ~/.config/opencode/AGENTS.md'
+t_in t13 "T13 opencode MCP written by Lola" "python3 -I -c \"import json,sys;d=json.load(open('/home/user/.config/opencode/opencode.json'))['mcp'];sys.exit(0 if 'd-srv' in d else 1)\""
+t_in t13 "T13 old claude skill removed" 'test ! -e ~/.claude/skills/d-skill'
+t_in t13 "T13 status records the agent" 'grep -q "agent=opencode" ~/.lola/init-status'
+runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+t_rc0 T13c; t_out "T13 opencode restart uses the update path" "origin=default mode=update"
+runinit t13 LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T13d; t_in t13 "T13 back to claude: opencode skill removed" 'test ! -e ~/.config/opencode/skills/d-skill'
+t_in t13 "T13 back to claude: claude skill installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+newhome t13e; runinit t13e LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=bogus
+t_rc0 T13e; t_out "T13 unknown agent is refused" "unsupported LOLA_AGENT=bogus"
+t_in t13e "T13 unknown agent installs nothing" 'test ! -e ~/.lola/init-source'
+
+echo "T14 several agents"
+newhome t14
+runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode,claude-code
+t_rc0 T14a; t_out "T14 list installs" "agent=claude-code,opencode"
+t_in t14 "T14 claude content installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+t_in t14 "T14 opencode content installed" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
+t_in t14 "T14 opencode MCP written by Lola" "python3 -I -c \"import json,sys;d=json.load(open('/home/user/.config/opencode/opencode.json'))['mcp'];sys.exit(0 if 'd-srv' in d else 1)\""
+t_in t14 "T14 claude MCP adapted" "python3 -I -c \"import json,sys;d=json.load(open('/home/user/.claude.json'))['mcpServers'];sys.exit(0 if 'd-srv' in d else 1)\""
+runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=claude-code,opencode
+t_rc0 T14b; t_out "T14 same set in another order uses the update path" "mode=update"
+runinit t14 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+t_rc0 T14c; t_out "T14 narrowing the set takes the switch path" "mode=switch"
+t_in t14 "T14 dropped agent content removed" 'test ! -e ~/.claude/skills/d-skill'
+t_in t14 "T14 kept agent content stays" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
+
+echo "T15 all agents"
+newhome t15
+runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=all
+t_rc0 T15a; t_out "T15 all is recorded as one value" "agent=all"
+t_in t15 "T15 claude content installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+t_in t15 "T15 opencode content installed" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
+t_in t15 "T15 cursor content installed" 'test -f ~/.cursor/skills/d-skill/SKILL.md'
+runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=all
+t_rc0 T15b; t_out "T15 restart uses the update path" "mode=update"
+runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T15c; t_out "T15 all to one takes the switch path" "mode=switch"
+t_in t15 "T15 agents outside the new set removed" 'test ! -e ~/.cursor/skills/d-skill && test ! -e ~/.config/opencode/skills/d-skill'
+t_in t15 "T15 claude content stays" 'test -f ~/.claude/skills/d-skill/SKILL.md'
 
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" = 0 ]

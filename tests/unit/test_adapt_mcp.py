@@ -34,7 +34,7 @@ class HomeCase(unittest.TestCase):
         (self.home / ".lola").mkdir()
         self.src = self.home / ".mcp.json"
         self.dst = self.home / ".claude.json"
-        self.managed = self.home / ".lola" / ".ai-agent-init-managed-mcp.json"
+        self.managed = self.home / ".lola" / "init-managed-mcp.json"
 
     def write_json(self, path, data):
         path.write_text(json.dumps(data))
@@ -168,7 +168,7 @@ class SyncTest(HomeCase):
         self.set_servers({"local": STDIO})
         self.run_main()
         self.assertEqual(sorted(p.name for p in self.home.iterdir()), [".claude.json", ".lola", ".mcp.json"])
-        self.assertEqual([p.name for p in (self.home / ".lola").iterdir()], [".ai-agent-init-managed-mcp.json"])
+        self.assertEqual([p.name for p in (self.home / ".lola").iterdir()], ["init-managed-mcp.json"])
 
 
 class FailureTest(HomeCase):

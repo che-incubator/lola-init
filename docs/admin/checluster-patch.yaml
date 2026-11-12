@@ -1,17 +1,19 @@
-# Merge patch for the CheCluster: adds the ai-agent-init init container to every workspace pod.
+# Merge patch for the CheCluster: adds the lola-init init container to every workspace pod.
 #
 #   oc patch checluster <name> -n <che-namespace> --type merge --patch-file checluster-patch.yaml
 #
 # A merge patch REPLACES the whole initContainers list. Use it only when the list is empty or absent;
 # otherwise append the entry with a JSON patch (see README.md).
 #
-# The image is pinned by digest (index of linux/amd64 and linux/arm64). To update, read the new digest from
-# the registry, never from the build log.
+# Pin the image by digest (index of linux/amd64 and linux/arm64). Read it from the registry, never from the
+# build log:
+#
+#   skopeo inspect --raw docker://quay.io/che-incubator/lola-init:latest | jq -r '.manifests[0].digest'
 spec:
   devEnvironments:
     initContainers:
-      - name: ai-agent-init
-        image: quay.io/okurinny/ai-agent-init@sha256:408566f2640043ff7a68db0546d2fe3b3a59b5d0594319106ba0ae34d620389e
+      - name: lola-init
+        image: quay.io/che-incubator/lola-init@sha256:<digest>
         imagePullPolicy: IfNotPresent
         workingDir: /home/user
         volumeMounts:

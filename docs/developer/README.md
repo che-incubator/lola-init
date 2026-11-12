@@ -1,8 +1,10 @@
 # Developer guide: your own agent config in every workspace
 
-`ai-agent-init` installs your skills, agents, instructions and MCP servers into `~/.claude` and `~/.claude.json`
-at every workspace start. Claude Code only for now. If your admin set a recommended repo you already get that;
-the steps below replace it with yours. See the [admin guide](../admin/README.md) for how it is enabled.
+`lola-init` installs your skills, agents, instructions and MCP servers at every workspace start: into
+`~/.claude` and `~/.claude.json` for Claude Code, into `~/.config/opencode` for OpenCode, and into the native
+location of any other Lola-supported assistant you select. If your admin set
+a recommended repo you already get that; the steps below replace it with yours. See the
+[admin guide](../admin/README.md) for how it is enabled.
 
 ## 1. Make a config repo
 
@@ -65,7 +67,7 @@ Create this Secret in your namespace, then restart the workspace:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ai-agent-config-repo
+  name: lola-config
   labels:
     controller.devfile.io/mount-to-devworkspace: "true"
     controller.devfile.io/watch-secret: "true"
@@ -73,10 +75,13 @@ metadata:
     controller.devfile.io/mount-as: env
 stringData:
   # Your config repo: a git URL.
-  AI_CONFIG_REPO_URL: https://github.com/<you>/<config-repo>.git
+  LOLA_REPO_URL: https://github.com/<you>/<config-repo>.git
   # The git ref to check out: a branch name, a tag or a commit SHA (for example main or v1.2.0).
   # Optional: leave it out to use the repo's default branch.
-  AI_CONFIG_REPO_REF: main
+  LOLA_REPO_REF: main
+  # Optional: the assistants to install for. One name (claude-code, the default), a comma-separated
+  # subset (claude-code,opencode,gemini-cli), or all.
+  LOLA_AGENT: opencode
 ```
 
 The Secret mounts into **every workspace in the namespace**. To limit it, add the annotation
@@ -85,26 +90,30 @@ A private repo works through the git credentials your workspace already has; a p
 
 ## 3. Check it worked
 
-- `cat ~/.lola/.ai-agent-init-status` should read `ok <time> <module> origin=personal mode=install warnings=0`.
-- `ls ~/.claude/skills ~/.claude/agents` lists your items, and `claude mcp list` lists your servers (a remote
-  server may ask you to log in).
-- The init log has the details: `oc logs <workspace pod> -c ai-agent-init`.
-- `warnings=N` with `N` above 0 means Lola dropped entries. The log lines that start with `[ai-agent-init] lola:`
+- `cat ~/.lola/init-status` should read `ok <time> <module> origin=personal mode=install warnings=0`.
+- Claude Code: `ls ~/.claude/skills ~/.claude/agents` lists your items, and `claude mcp list` lists your
+  servers (a remote server may ask you to log in). OpenCode: `ls ~/.config/opencode/skills
+  ~/.config/opencode/agents`, and the servers are under `mcp` in `~/.config/opencode/opencode.json`.
+- The init log has the details: `oc logs <workspace pod> -c lola-init`.
+- `warnings=N` with `N` above 0 means Lola dropped entries. The log lines that start with `[lola-init] lola:`
   name them, for example `mcp.json: server 'x': unsupported type`.
 
 ## 4. Change or remove it
 
 - **Update:** push to your repo and restart the workspace. New commits arrive, and skills you deleted from the repo
   are removed.
-- **Another branch or tag:** change `AI_CONFIG_REPO_REF`.
-- **Another repo:** change `AI_CONFIG_REPO_URL`. The init removes the old config completely, then installs the new one.
+- **Another branch or tag:** change `LOLA_REPO_REF`.
+- **Another repo:** change `LOLA_REPO_URL`. The init removes the old config completely, then installs the new one.
+- **Another or more assistants:** change `LOLA_AGENT` (`claude-code`, `opencode`, a comma-separated list,
+  or `all`). Same switch path: the config is removed from every assistant of the old set, then installed for the
+  new set. An old assistant's instructions file can stay behind, empty.
 - **Back to the recommended repo:** delete the Secret and restart the workspace.
-- **Turn it off, no config at all:** add `AI_CONFIG_DISABLED: "true"` to the same Secret (the exact value `true`; the
+- **Turn it off, no config at all:** add `LOLA_DISABLED: "true"` to the same Secret (the exact value `true`; the
   Secret needs the keys above only if you also want a personal repo) and restart the workspace. It wins over your repo
   and the recommended one: the init fetches nothing and the status file reads `ok <time> disabled`. Config that is
   already installed is **not removed**; delete `~/.claude/skills/<name>`, `~/.claude/agents/<name>.md` and the Lola
-  block in `~/.claude/CLAUDE.md` yourself if you want it gone. A new workspace starts with none. Remove the key to turn
-  it back on.
+  block in `~/.claude/CLAUDE.md` yourself if you want it gone (OpenCode: the same under `~/.config/opencode`).
+  A new workspace starts with none. Remove the key to turn it back on.
 - **No recommended repo exists:** with no URL set the init does nothing, and files already installed stay (this
   last part is not tested).
 
@@ -114,8 +123,8 @@ A private repo works through the git credentials your workspace already has; a p
 |---|---|---|
 | `failed … reason=lola mod add`, log has `could not read Username` | the repo is private and the workspace has no git credentials | make the repo public, or add git credentials |
 | `new config source is not reachable; kept the existing install` | wrong URL or no access; your old config is still there | fix the URL or access, restart |
-| `warnings=N` with `N` above 0 | Lola dropped entries | read the `[ai-agent-init] lola:` lines |
-| `ok <time> disabled`, nothing new installed | `AI_CONFIG_DISABLED=true` reached the workspace | remove the key from the Secret if you want the config back |
+| `warnings=N` with `N` above 0 | Lola dropped entries | read the `[lola-init] lola:` lines |
+| `ok <time> disabled`, nothing new installed | `LOLA_DISABLED=true` reached the workspace | remove the key from the Secret if you want the config back |
 | no status file, nothing installed | no URL reached the workspace, or the admin did not enable the init container | check the Secret labels, then ask your admin |
 
 A failing init never stops the workspace from starting. A broken init image does, and so does a cluster with
