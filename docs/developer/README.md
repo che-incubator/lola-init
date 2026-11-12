@@ -119,8 +119,7 @@ A private repo works through the git credentials your workspace already has; a p
   already installed is **not removed**; delete `~/.claude/skills/<name>`, `~/.claude/agents/<name>.md` and the Lola
   block in `~/.claude/CLAUDE.md` yourself if you want it gone (OpenCode: the same under `~/.config/opencode`).
   A new workspace starts with none. Remove the key to turn it back on.
-- **No recommended repo exists:** with no URL set the init does nothing, and files already installed stay (this
-  last part is not tested).
+- **No recommended repo exists:** with no URL set the init does nothing, and files already installed stay.
 
 ## When something is wrong
 
