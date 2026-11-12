@@ -80,7 +80,7 @@ IMG=lola-init:dev-amd64 PLATFORM=linux/amd64 tests/run-tests.sh
 
 Pushes to `main` publish `quay.io/che-incubator/lola-init:latest` and `:sha-<commit>` for amd64 and arm64
 (the `QUAY_USERNAME` and `QUAY_PASSWORD` repository secrets hold the robot account). The index digest is in
-the workflow run summary.
+the workflow run summary. A push that touches only `docs/` or Markdown runs neither the tests nor the publish.
 
 The tests need Docker and git. They build local fixture repos, run the image against them as uid 1000 and
 check the files in the home volume (install, restart, new commit, non-default ref, personal over default and
