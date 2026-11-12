@@ -65,6 +65,8 @@ It never fails the workspace start because of a script failure: every failure pa
   can stay behind empty (`~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`), plus any MCP entries the Claude
   adapter added to `~/.claude.json` (that adapter runs only when `claude-code` or `all` is selected).
 - Reusing the name of a managed MCP server for one you added by hand lets the adapter overwrite and later remove it.
+- Removing or replacing the installed module touches only the module lola-init installed. Modules you add to
+  `~/.lola/modules` yourself stay, and the init refuses to switch rather than guess when it cannot tell them apart.
 - A container that cannot start at all (image not pullable, wrong architecture) does block the workspace pod.
   Publish multi-arch (amd64 + arm64) images and pin them by digest.
 

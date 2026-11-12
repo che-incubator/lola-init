@@ -41,6 +41,31 @@ fail() {
 }
 lcmd() { timeout "${LOLA_TIMEOUT:-120}" "$@" >> "$LOG" 2>&1; }
 modules() { ls -1 "$STATE/modules" 2>/dev/null; }
+# The module lola-init manages: the name in the record, else the module whose Lola source hashes to the
+# recorded one (homes from before the name was recorded), else the only module present. Never a module the
+# user added by hand while another candidate exists.
+# A home with no record and no status was never touched by lola-init: its modules belong to the user.
+managed() {
+  if [ -n "${rec_module:-}" ] && [ -d "$STATE/modules/$rec_module" ]; then
+    printf '%s\n' "$rec_module"
+    return 0
+  fi
+  if [ -n "${recorded:-}" ]; then
+    for m in $(modules); do
+      s=$(sed -n 's/^source: //p' "$STATE/modules/$m/.lola/source.yml" 2>/dev/null)
+      r=$(sed -n 's/^ref: //p' "$STATE/modules/$m/.lola/source.yml" 2>/dev/null)
+      if [ "$(printf '%s %s' "$s" "$r" | sha256sum | cut -d' ' -f1)" = "$recorded" ]; then
+        printf '%s\n' "$m"
+        return 0
+      fi
+    done
+  fi
+  if [ ! -f "$RECORD" ] && [ -f "$STATUS" ] && [ "$(modules | grep -c .)" = 1 ]; then
+    modules
+    return 0
+  fi
+  return 1
+}
 
 cd "$HOME" 2>/dev/null || { say "FAILED: cannot cd to HOME"; exit 0; }
 
@@ -75,14 +100,16 @@ SRC_HASH=$(printf '%s %s' "$URL" "$REF" | sha256sum | cut -d' ' -f1)
 
 existing=$(modules)
 mode=install
+rec_module=
 if [ -n "$existing" ]; then
   if [ -f "$RECORD" ]; then
-    # Line 1 is the source hash; field 2 is the agent list (absent in homes written before it was recorded).
-    read -r recorded rec_agents < "$RECORD" 2>/dev/null
+    # Line 1 is the source hash; field 2 is the agent list and field 3 the module name (both absent in homes
+    # written before they were recorded).
+    read -r recorded rec_agents rec_module < "$RECORD" 2>/dev/null
     [ -n "${rec_agents:-}" ] || rec_agents=claude-code
     if [ "$recorded" = "$SRC_HASH" ] && [ "$rec_agents" = "$AGENTS" ]; then mode=update; else mode=switch; fi
-  else
-    # Home written by an earlier version without a record: compare the source Lola stored.
+  elif [ -f "$STATUS" ]; then
+    # Home written by an image from before the record existed: compare the source Lola stored.
     count=$(printf '%s\n' "$existing" | wc -l | tr -d ' ')
     first=$(printf '%s\n' "$existing" | head -1)
     stored=$(sed -n 's/^source: //p' "$STATE/modules/$first/.lola/source.yml" 2>/dev/null)
@@ -95,23 +122,27 @@ if [ "$mode" = switch ]; then
   say "config source changed (now: $ORIGIN agent=$AGENTS); replacing the installed module"
   # Check the new source first, so an unreachable one does not wipe a working install.
   timeout 30 git ls-remote "$URL" >> "$LOG" 2>&1 || fail "new config source is not reachable; kept the existing install"
-  for m in $existing; do
-    # "lola mod rm" alone leaves the installed files, instructions block and MCP entries in place. No "-a":
-    # the module is ours, so remove it from every assistant it was installed for, including a changed set.
-    lcmd lola uninstall "$m" -s user -f
-    lcmd lola mod rm "$m" -f || fail "could not remove old module $m"
-  done
+  m=$(managed) || fail "cannot tell which module lola-init installed; nothing was removed"
+  # "lola mod rm" alone leaves the installed files, instructions block and MCP entries in place. No "-a":
+  # the module is ours, so remove it from every assistant it was installed for, including a changed set.
+  lcmd lola uninstall "$m" -s user -f
+  lcmd lola mod rm "$m" -f || fail "could not remove old module $m"
   mode=install
 fi
 
 if [ "$mode" = update ]; then
-  module=$(printf '%s\n' "$existing" | head -1)
+  module=$(managed) || fail "cannot tell which module lola-init installed; nothing was updated"
   lcmd lola mod update "$module" || fail "lola mod update"
   # No "-a": Lola regenerates the files of every assistant the module is installed for.
   lcmd lola update "$module" || fail "lola update"
 else
+  before=$(modules)
   lcmd lola mod add "$URL" ${REF:+--ref "$REF"} || fail "lola mod add"
-  module=$(modules | head -1)
+  # The module just added is the one that was not there before; "head -1" could pick a module the user added.
+  module=
+  for m in $(modules); do
+    case " $(printf '%s' "$before" | tr '\n' ' ') " in *" $m "*) ;; *) module=$m ;; esac
+  done
   [ -n "$module" ] || fail "no module registered after lola mod add"
   rc=0
   if [ "$AGENTS" = all ]; then
@@ -147,6 +178,6 @@ case ",$AGENTS," in
     ;;
 esac
 
-printf '%s %s\n' "$SRC_HASH" "$AGENTS" > "$RECORD"
+printf '%s %s %s\n' "$SRC_HASH" "$AGENTS" "$module" > "$RECORD"
 write_status "ok $(date -u +%FT%TZ) $module origin=$ORIGIN mode=$start_mode warnings=$warnings agent=$AGENTS url=$URL"
 say "ok module=$module origin=$ORIGIN mode=$start_mode warnings=$warnings agent=$AGENTS"

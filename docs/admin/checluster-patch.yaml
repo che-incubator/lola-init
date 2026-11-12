@@ -6,9 +6,9 @@
 # otherwise append the entry with a JSON patch (see README.md).
 #
 # Pin the image by digest (index of linux/amd64 and linux/arm64). Read it from the registry, never from the
-# build log:
+# build log. skopeo's --raw output has no index digest of its own, so use imagetools:
 #
-#   skopeo inspect --raw docker://quay.io/che-incubator/lola-init:latest | jq -r '.manifests[0].digest'
+#   docker buildx imagetools inspect quay.io/che-incubator/lola-init:latest | grep Digest:
 spec:
   devEnvironments:
     initContainers:

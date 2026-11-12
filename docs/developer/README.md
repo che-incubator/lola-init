@@ -87,10 +87,15 @@ stringData:
 The Secret mounts into **every workspace in the namespace**. To limit it, add the annotation
 `controller.devfile.io/mount-to-devworkspace-include: name1,prefix-*` (and `-exclude` to leave some out).
 A private repo works through the git credentials your workspace already has; a public one needs none.
+`LOLA_TIMEOUT` sets the timeout in seconds for each Lola command, 120 by default. It goes into the same
+`Secret` or into the administrator's `ConfigMap`.
 
 ## 3. Check it worked
 
-- `cat ~/.lola/init-status` should read `ok <time> <module> origin=personal mode=install warnings=0`.
+- `cat ~/.lola/init-status` should read
+  `ok <time> <module> origin=personal mode=install warnings=0 agent=<list> url=<url>`. `mode` is `install` on a
+  fresh home, `update` when the repository and the assistant set did not change, and `switch` after a change of
+  either.
 - Claude Code: `ls ~/.claude/skills ~/.claude/agents` lists your items, and `claude mcp list` lists your
   servers (a remote server may ask you to log in). OpenCode: `ls ~/.config/opencode/skills
   ~/.config/opencode/agents`, and the servers are under `mcp` in `~/.config/opencode/opencode.json`.

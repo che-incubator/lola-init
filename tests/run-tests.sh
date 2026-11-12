@@ -211,7 +211,7 @@ PYEOF
 publish E
 runinit t11 LOLA_DEFAULT_REPO_URL=/src/E.git
 t_rc0 T11b; t_no_srv t11 e-srv2; t_srv t11 e-srv
-if inh t11 'test -e ~/.claude/skills/e-extra' >/dev/null 2>&1; then info "T11 a skill removed from the repo STAYS in ~/.claude/skills after update (Lola does not prune)"; else info "T11 a skill removed from the repo is removed by update"; fi
+t_in t11 "T11 a skill removed from the repo is removed by update (the docs promise this)" 'test ! -e ~/.claude/skills/e-extra'
 
 echo "T12 opt-out with LOLA_DISABLED=true"
 newhome t12a; runinit t12a LOLA_DISABLED=true LOLA_REPO_URL=/src/nope.git
@@ -288,6 +288,34 @@ runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T15c; t_out "T15 all to one takes the switch path" "mode=switch"
 t_in t15 "T15 agents outside the new set removed" 'test ! -e ~/.cursor/skills/d-skill && test ! -e ~/.config/opencode/skills/d-skill'
 t_in t15 "T15 claude content stays" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+
+echo "T16 a module the user added by hand survives"
+mkrepo U u U1
+newhome t16
+inh t16 'cd ~ && lola mod add /src/U.git' >/dev/null
+t_in t16 "T16 the user module is registered" 'test -d ~/.lola/modules/u'
+runinit t16 LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T16a; t_out "T16 a home with only a foreign module uses the install path" "mode=install"
+t_in t16 "T16 the user module is untouched by the install" 'test -d ~/.lola/modules/u'
+t_in t16 "T16 the init installed its own module, not the user's" 'grep -q "Marker: D3" ~/.claude/skills/d-skill/SKILL.md'
+runinit t16 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+t_rc0 T16b; t_out "T16 agent change takes the switch path" "mode=switch"
+t_in t16 "T16 the user module survives the switch" 'test -d ~/.lola/modules/u'
+t_in t16 "T16 the init module was replaced" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md && test ! -e ~/.claude/skills/d-skill'
+
+echo "T17 a record from before the module name was stored"
+newhome t17
+inh t17 'cd ~ && lola mod add /src/U.git' >/dev/null
+runinit t17 LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T17a
+inh t17 'cut -d" " -f1,2 ~/.lola/init-source > ~/.lola/init-source.new && mv ~/.lola/init-source.new ~/.lola/init-source' >/dev/null
+runinit t17 LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T17b; t_out "T17 a two-field record still takes the update path" "mode=update"
+t_in t17 "T17 the record gains the module name" 'test "$(wc -w < ~/.lola/init-source)" = 3'
+runinit t17 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=opencode
+t_rc0 T17c; t_out "T17 switch after a two-field record" "mode=switch"
+t_in t17 "T17 the user module survives both paths" 'test -d ~/.lola/modules/u'
+t_in t17 "T17 the init module was replaced" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
 
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" = 0 ]

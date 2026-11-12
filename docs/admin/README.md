@@ -18,7 +18,7 @@ Two objects enable it for a whole cluster, with no che-operator or DWO code chan
   `container `lola-init` references undefined volume 'persistent-home'` (tested). Do not add the entry on a
   cluster that turns `persistUserHome` off.
 - The image is pullable from every user namespace. `quay.io/che-incubator/lola-init` is public (anonymous pull
-  checked on 2026-11-03 for amd64 and arm64, by tag and by digest). Pin by digest.
+  checked on 2026-11-12 for amd64 and arm64, by tag and by digest). Pin by digest.
 - The image is multi-arch (amd64 and arm64). Use the same index digest in the CheCluster entry.
 - The recommended repo is readable by the init: public, or the workspaces have git credentials (the init uses the
   git credentials DWO mounts). On a cluster without user git credentials a private default repo cannot be
@@ -55,9 +55,10 @@ oc get pod -l controller.devfile.io/devworkspace_name=<name> -o jsonpath='{.item
 oc logs -l controller.devfile.io/devworkspace_name=<name> -c lola-init
 ```
 
-Expected log lines: `[lola-init] ok module=<name> origin=default mode=install warnings=0`. Inside the
-workspace, `~/.lola/init-status` holds the same result. Skills are in `~/.claude/skills`, agents in
-`~/.claude/agents`, MCP servers in `~/.claude.json`.
+Expected log lines: `[lola-init] ok module=<name> origin=default mode=install warnings=0 agent=<list>`. Inside
+the workspace, `~/.lola/init-status` holds `ok <time> <module> origin=… mode=… warnings=… agent=… url=…`, with
+the full URL and the same values. Skills are in `~/.claude/skills`, agents in `~/.claude/agents`, MCP servers
+in `~/.claude.json`.
 
 ## Operate
 
@@ -100,14 +101,16 @@ through the git credentials the workspace already has.
 ## Failure behavior
 
 - A script failure never blocks the workspace start. It is logged and written to the status file
-  (`failed <time> origin=… reason=…`). Example, tested: a default repo that cannot be cloned.
+  (`failed <time> origin=… reason=…`). Example, tested: a default repo that cannot be cloned. The only exception
+  is a home the script cannot enter: it exits 0 without a status file, and the container log says so.
 - A container that cannot start at all fails the workspace start quickly and with a clear message. An init image
   that cannot be pulled ended in `Failed` after about 54 s with `Init Container lola-init has state
   ImagePullBackOff` (tested); no pod was left behind.
 - `persistUserHome` off fails every start at once: `lola-init` mounts `persistent-home`, which then does not
   exist (see Prerequisites).
 - An unreachable new repo during a switch leaves the existing install in place.
-- Credentials embedded in a URL are not printed or stored.
+- Credentials embedded in a URL are not printed or stored by the init: its log and the status file are
+  redacted, and `~/.lola/init-source` holds a hash. Lola and git still receive the URL as given.
 - A hand-made workspace must carry the attributes Che sets, for example the SCC attribute for the cluster's
   container-build setting. A workspace without it fails on the security context constraint regardless of this
   init container.
@@ -117,7 +120,8 @@ through the git credentials the workspace already has.
 Tested in Docker on amd64 and arm64: default only, personal over default, restart, a new commit, a non-default
 ref, switching both ways with the old config removed (files, instructions block, MCP servers), an invalid MCP
 entry reported as a warning, an unreachable repo, credentials in the URL, items removed from the repo, and
-upgrading a home written by an earlier version of the image.
+upgrading a home written by an earlier version of the image, and keeping a module that was added to `~/.lola`
+by hand across an install and a switch.
 
 Tested on a Dev Spaces cluster with DWO 1.1.0-dev.10 (internal-registry copy of the image, a per-namespace DWOC):
 the same scenarios in real workspaces, including personal over default and both switches.
@@ -152,5 +156,5 @@ Docker), an image of the wrong architecture blocking a pod, and the restart stor
 - A developer can opt out with `LOLA_DISABLED=true` in their Secret (see the developer guide, section 4). It
   stops the init from fetching or changing anything, but does not uninstall config that is already in the workspace
   home; a new workspace gets none. An admin cannot force the init on for a developer who sets it.
-- Claude Code only. `settings.json` (hooks, permissions, env) is not carried.
+- The MCP adapter is Claude Code only. Claude Code `settings.json` (hooks, permissions, env) is not carried.
 - Users cannot edit the synced ConfigMap copy. How the controller reverts edits was not read in detail.
