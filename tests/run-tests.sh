@@ -322,5 +322,22 @@ newhome t18; runinit t18 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENT=all
 t_rc0 T18; t_out "T18 the old name is reported as ignored" "now LOLA_AGENTS"
 t_in t18 "T18 the default assistant is used" 'grep -q "agents=claude-code" ~/.lola/init-status'
 
+echo "T19 a failed removal during a switch stops the switch and keeps the install"
+mkrepo P p P1
+newhome t19
+runinit t19 LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T19a; t_in t19 "T19 setup: the default module is installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+inh t19 'mkdir -p ~/bin && printf "#!/bin/sh\n[ \"\$1\" = uninstall ] && { echo simulated-uninstall-failure >&2; exit 1; }\nexec /usr/local/bin/lola \"\$@\"\n" > ~/bin/lola && chmod +x ~/bin/lola' >/dev/null
+runinit t19 PATH=/home/user/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin LOLA_REPO_URL=/src/P.git LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T19b; t_out "T19 the failed removal is reported" "could not remove the old module from every assistant"
+t_in t19 "T19 the status is failed" 'grep -q "^failed " ~/.lola/init-status'
+t_in t19 "T19 the old content is kept" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+t_in t19 "T19 the module stays registered for a retry" 'test -d ~/.lola/modules/d'
+t_in t19 "T19 the new module was not installed" 'test ! -e ~/.lola/modules/p'
+inh t19 'rm -f ~/bin/lola' >/dev/null
+runinit t19 LOLA_REPO_URL=/src/P.git LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T19c; t_out "T19 the retry takes the switch path" "mode=switch"
+t_in t19 "T19 the retry replaces the content" 'test ! -e ~/.claude/skills/d-skill && grep -q "Marker: P1" ~/.claude/skills/p-skill/SKILL.md'
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" = 0 ]

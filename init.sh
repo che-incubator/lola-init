@@ -126,7 +126,9 @@ if [ "$mode" = switch ]; then
   m=$(managed) || fail "cannot tell which module lola-init installed; nothing was removed"
   # "lola mod rm" alone leaves the installed files, instructions block and MCP entries in place. No "-a":
   # the module is ours, so remove it from every assistant it was installed for, including a changed set.
-  lcmd lola uninstall "$m" -s user -f
+  # Checked on purpose: a half-removed module followed by "ok" is worse than a failed start, and "mod rm"
+  # below deletes the only handle for retrying the removal.
+  lcmd lola uninstall "$m" -s user -f || fail "could not remove the old module from every assistant"
   lcmd lola mod rm "$m" -f || fail "could not remove old module $m"
   mode=install
 fi
