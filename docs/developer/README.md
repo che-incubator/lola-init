@@ -111,7 +111,8 @@ A private repo works through the git credentials your workspace already has; a p
 - **Another repo:** change `LOLA_REPO_URL`. The init removes the old config completely, then installs the new one.
 - **Another or more assistants:** change `LOLA_AGENTS` (`claude-code`, `opencode`, a comma-separated list,
   or `all`). Same switch path: the config is removed from every assistant of the old set, then installed for the
-  new set. An old assistant's instructions file can stay behind, empty.
+  new set. An old assistant's instructions file can stay behind, empty. This key has no effect when the
+  administrator sets `LOLA_AGENTS` on the init container: the container's own value wins.
 - **Back to the recommended repo:** delete the Secret and restart the workspace.
 - **Turn it off, no config at all:** add `LOLA_DISABLED: "true"` to the same Secret (the exact value `true`; the
   Secret needs the keys above only if you also want a personal repo) and restart the workspace. It wins over your repo

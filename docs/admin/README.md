@@ -109,8 +109,13 @@ through the git credentials the workspace already has.
 - `persistUserHome` off fails every start at once: `lola-init` mounts `persistent-home`, which then does not
   exist (see Prerequisites).
 - An unreachable new repo during a switch leaves the existing install in place.
-- Credentials embedded in a URL are not printed or stored by the init: its log and the status file are
-  redacted, and `~/.lola/init-source` holds a hash. Lola and git still receive the URL as given.
+- The init prints no credential: its log and the status file are redacted, and `~/.lola/init-source` holds a
+  hash. Lola and git receive the URL as given, and Lola writes it to
+  `~/.lola/modules/<module>/.lola/source.yml`, so a token embedded in the URL is readable in the home. Prefer a
+  token that reads only that repository, and rotate it.
+- `LOLA_AGENTS` set on the init container wins over the same key in a developer's Secret: DWO mounts the Secret
+  with `envFrom`, and Kubernetes resolves an explicit `env` entry before `envFrom` keys. Set it on the container
+  only when every workspace uses the same set.
 - A hand-made workspace must carry the attributes Che sets, for example the SCC attribute for the cluster's
   container-build setting. A workspace without it fails on the security context constraint regardless of this
   init container.

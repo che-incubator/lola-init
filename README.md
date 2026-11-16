@@ -55,7 +55,8 @@ OpenCode needs no adapter: Lola writes its MCP servers straight into `~/.config/
 
 It never fails the workspace start because of a script failure: every failure path exits 0. The result is in
 `~/.lola/init-status` (`ok|failed <time> <module> origin=… mode=… warnings=… agents=… url=…`, or
-`ok <time> disabled` when opted out). URLs are printed and stored without embedded credentials.
+`ok <time> disabled` when opted out). The log and the status file are redacted. Lola records the URL it cloned in
+`~/.lola/modules/<module>/.lola/source.yml`, so a credential embedded in the URL stays readable in the home.
 
 ## Limits
 
