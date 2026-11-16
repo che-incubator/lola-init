@@ -60,8 +60,9 @@ It never fails the workspace start because of a script failure: every failure pa
 ## Limits
 
 - Codex is not supported: Lola has no `codex` target (LobsterTrap/lola#132). `settings.json` (hooks,
-  permissions, env) is not carried. Gemini CLI has no agents, and Lola still crashes on a command whose front
-  matter `description` is a list, so keep command descriptions a single string.
+  permissions, env) is not carried. Gemini CLI has no agents, and installing for Gemini CLI crashes on a
+  command whose front matter `description` is a list, while Claude Code installs the same command, so keep
+  command descriptions a single string.
 - Switching the agent set removes the module from each assistant it was installed for, but an instruction file
   can stay behind empty (`~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md`), plus any MCP entries the Claude
   adapter added to `~/.claude.json` (that adapter runs only when `claude-code` or `all` is selected).
