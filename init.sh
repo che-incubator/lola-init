@@ -126,9 +126,10 @@ if [ "$mode" = switch ]; then
   m=$(managed) || fail "cannot tell which module lola-init installed; nothing was removed"
   # "lola mod rm" alone leaves the installed files, instructions block and MCP entries in place. No "-a":
   # the module is ours, so remove it from every assistant it was installed for, including a changed set.
+  # No "-s user" either: openclaw is installed at project scope, and a plain uninstall covers every scope.
   # Checked on purpose: a half-removed module followed by "ok" is worse than a failed start, and "mod rm"
   # below deletes the only handle for retrying the removal.
-  lcmd lola uninstall "$m" -s user -f || fail "could not remove the old module from every assistant"
+  lcmd lola uninstall "$m" -f || fail "could not remove the old module from every assistant"
   lcmd lola mod rm "$m" -f || fail "could not remove old module $m"
   mode=install
 fi
@@ -153,11 +154,17 @@ else
     lcmd lola install "$module" -s user -f || rc=1
   else
     for a in $(printf '%s' "$AGENTS" | tr ',' ' '); do
-      lcmd lola install "$module" -a "$a" -s user -f || rc=1
+      # Lola points openclaw at ~/.openclaw/workspace and refuses "--scope user" for it, so install it
+      # there at project scope; Lola expects the directory to exist.
+      if [ "$a" = openclaw ]; then
+        mkdir -p "$HOME/.openclaw/workspace" && lcmd lola install "$module" -a "$a" -f || rc=1
+      else
+        lcmd lola install "$module" -a "$a" -s user -f || rc=1
+      fi
     done
   fi
   if [ "$rc" != 0 ]; then
-    lcmd lola uninstall "$module" -s user -f   # so the next start retries from scratch
+    lcmd lola uninstall "$module" -f   # so the next start retries from scratch
     lcmd lola mod rm "$module" -f
     fail "lola install"
   fi

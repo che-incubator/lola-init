@@ -282,12 +282,26 @@ t_rc0 T15a; t_out "T15 all is recorded as one value" "agents=all"
 t_in t15 "T15 claude content installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
 t_in t15 "T15 opencode content installed" 'test -f ~/.config/opencode/skills/d-skill/SKILL.md'
 t_in t15 "T15 cursor content installed" 'test -f ~/.cursor/skills/d-skill/SKILL.md'
+t_in t15 "T15 openclaw content installed" 'test -f ~/.openclaw/workspace/skills/d-skill/SKILL.md'
 runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=all
 t_rc0 T15b; t_out "T15 restart uses the update path" "mode=update"
 runinit t15 LOLA_DEFAULT_REPO_URL=/src/D.git
 t_rc0 T15c; t_out "T15 all to one takes the switch path" "mode=switch"
 t_in t15 "T15 agents outside the new set removed" 'test ! -e ~/.cursor/skills/d-skill && test ! -e ~/.config/opencode/skills/d-skill'
 t_in t15 "T15 claude content stays" 'test -f ~/.claude/skills/d-skill/SKILL.md'
+
+echo "T15b OpenClaw target"
+newhome t15o
+runinit t15o LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=openclaw
+t_rc0 T15o1; t_out "T15o openclaw installs" "agents=openclaw"
+t_in t15o "T15o openclaw skill installed" 'grep -q "Marker: D3" ~/.openclaw/workspace/skills/d-skill/SKILL.md'
+t_in t15o "T15o openclaw gets skills only" 'test ! -e ~/.openclaw/workspace/agents && test ! -e ~/.openclaw/workspace/commands'
+runinit t15o LOLA_DEFAULT_REPO_URL=/src/D.git LOLA_AGENTS=openclaw
+t_rc0 T15o2; t_out "T15o restart uses the update path" "mode=update"
+runinit t15o LOLA_DEFAULT_REPO_URL=/src/D.git
+t_rc0 T15o3; t_out "T15o leaving openclaw takes the switch path" "mode=switch"
+t_in t15o "T15o openclaw content removed" 'test ! -e ~/.openclaw/workspace/skills/d-skill'
+t_in t15o "T15o claude content installed" 'test -f ~/.claude/skills/d-skill/SKILL.md'
 
 echo "T16 a module the user added by hand survives"
 mkrepo U u U1
